@@ -9,7 +9,8 @@ class DoubleConvolution(nn.Module):
         first_conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
         second_conv = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
 
-        self.net = nn.Sequential(first_conv, nn.ReLU(), second_conv, nn.ReLU())
+        self.net = nn.Sequential(first_conv, nn.BatchNorm2d(out_channels), nn.ReLU(), second_conv,
+                                 nn.BatchNorm2d(out_channels), nn.ReLU())
 
     def forward(self, x):
         return self.net(x)
@@ -52,7 +53,7 @@ class DecoderConvolution(nn.Module):
 class OutputConvolution(nn.Module):
     def __init__(self, in_channels, out_channels, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.output_conv = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=1)
+        self.output_conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
     def forward(self, x):
         result = self.output_conv(x)
