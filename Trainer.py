@@ -1,7 +1,5 @@
 from datetime import datetime
-
 import torch
-import time
 
 
 class Trainer:
@@ -66,7 +64,7 @@ class Trainer:
             with torch.no_grad(), torch.profiler.profile(activities=[
                 torch.profiler.ProfilerActivity.CPU,
                 torch.profiler.ProfilerActivity.CUDA,
-            ], profile_memory=True, on_trace_ready=self._profile_trace_handler) as p:
+            ], profile_memory=True, on_trace_ready=lambda profiler: self._profile_trace_handler(profiler, epoch)) as p:
 
                 for i, vdata in enumerate(self.validation_loader):
                     images, true_masks = vdata
@@ -95,13 +93,40 @@ class Trainer:
 
         return best_metric
 
-    def _profile_trace_handler(self, p):
-        output = p.key_averages().table(sort_by="self_cuda_time_total", row_limit=10)
+    def _profile_trace_handler(self, p, epoch):
+        number_samples = len(self.validation_loader.dataset)
 
-        number_samples = len(self.validation_loader)
+        sum_cpu_time = 0
+        sum_device_time = 0
+        sum_cpu_memory = 0
+        sum_gpu_memory = 0
+        peak_cpu_memory = 0
+        peak_gpu_memory = 0
 
-        # TODO: throughput, latency
+        for event in p.profiler.function_events:
+            sum_cpu_time += event.self_cpu_time_total
+            sum_device_time += event.self_device_time_total
+            sum_cpu_memory += event.self_cpu_memory_usage
+            sum_gpu_memory += event.self_device_memory_usage
 
-        print(output)
-        print(torch.cuda.max_memory_allocated())
-        torch.cuda.reset_peak_memory_stats()
+            if sum_cpu_memory > peak_cpu_memory:
+                peak_cpu_memory = sum_cpu_memory
+
+            if sum_gpu_memory > peak_gpu_memory:
+                peak_gpu_memory = sum_gpu_memory
+
+        time_total = sum_cpu_time + sum_device_time
+
+        latency_ms = (time_total / 1000) / number_samples
+
+        throughput_s = number_samples / (time_total / (1000 ** 2))
+
+        peak_cpu_memory_gb = peak_cpu_memory / (1000 ** 3)
+        peak_gpu_memory_gb = peak_gpu_memory / (1000 ** 3)
+
+        # GPU dependent, necessary to install specific packages
+        # print(torch.cuda.power_draw())
+        print("Latency(ms): " + latency_ms)
+        print("Throughput(FPS): " + throughput_s)
+        print("Peak GPU Memory(GB): " + peak_gpu_memory_gb)
+        print("Peak CPU Memory(GB): " + peak_cpu_memory_gb)

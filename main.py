@@ -4,37 +4,18 @@ import torch
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import SGD
 from torch.utils.data import DataLoader, Subset
-from torchvision import transforms
 from sklearn.model_selection import KFold
-from torchvision.transforms import InterpolationMode
 
-from data_loading import BasicDataset
+from KvasirDataset import KvasirDataset
 from UNet import UNet
-from trainer import Trainer
+from Trainer import Trainer
 from metrics import iou
 
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    scale = 0.5
-    img_w = 600
-    img_h = 500
-
-    dataset = BasicDataset('/home/alexandre/dev/UNetExperiments/datasets/Kvasir-SEG/images',
-                           '/home/alexandre/dev/UNetExperiments/datasets/Kvasir-SEG/masks',
-                           transformer=transforms.Compose(
-                               [transforms.ToTensor(),
-                                transforms.Resize((int(img_h * scale), int(img_w * scale)),
-                                                  InterpolationMode.BICUBIC)]),
-                           target_transformer=transforms.Compose(
-                               [transforms.ToTensor(),
-                                transforms.Resize((int(img_h * scale), int(img_w * scale)), InterpolationMode.NEAREST),
-                                transforms.Lambda(lambda x: x[0, :, :]),
-                                transforms.Lambda(lambda x: (x >= 0.5).float())]),
-                           )
-
-    # train_set, val_set, test_set = random_split(dataset, [0.6, 0.1, 0.3], generator=torch.Generator().manual_seed(0))
+    dataset = KvasirDataset('/home/alexandre/dev/UNetExperiments/datasets/Kvasir-SEG', scale=0.5)
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
