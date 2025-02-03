@@ -5,7 +5,7 @@ from pathlib import Path
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from utils import load_image
+from src.utils import load_image
 
 
 class KvasirDataset(Dataset):
@@ -30,8 +30,8 @@ class KvasirDataset(Dataset):
         self.images_dir = Path(join(dataset_path, 'images'))
         self.mask_dir = Path(join(dataset_path, 'masks'))
 
-        self.ids = [splitext(file)[0] for file in listdir(dataset_path) if
-                    isfile(join(dataset_path, file)) and not file.startswith('.')]
+        self.ids = [splitext(file)[0] for file in listdir(self.images_dir) if
+                    isfile(join(self.images_dir, file)) and not file.startswith('.')]
         if not self.ids:
             raise RuntimeError(f'No input file found in {dataset_path}, make sure you put your images there')
 
@@ -51,9 +51,7 @@ class KvasirDataset(Dataset):
         assert img.size == mask.size, \
             f'Image and mask {name} should be the same size, but are {img.size} and {mask.size}'
 
-        if self.transformer is not None:
-            img = self.transformer(img)
-        if self.target_transformer is not None:
-            mask = self.target_transformer(mask)
+        img = self.transformer(img)
+        mask = self.target_transformer(mask)
 
         return img, mask

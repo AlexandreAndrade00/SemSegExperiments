@@ -18,8 +18,8 @@ class Trainer:
         for data in self.training_loader:
             images, true_masks = data
 
-            images = images.to(device=self.device, dtype=torch.float32, memory_format=torch.channels_last)
-            true_masks = true_masks.to(device=self.device, dtype=torch.long)
+            images = images.to(device=self.device, dtype=torch.float, memory_format=torch.channels_last)
+            true_masks = true_masks.to(device=self.device, dtype=torch.float)
 
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
@@ -28,7 +28,10 @@ class Trainer:
             masks_pred = self.model(images)
 
             # Compute the loss and its gradients for c
-            loss = self.loss_fn(masks_pred.squeeze(1), true_masks.float())
+            if masks_pred.size()[1] == 3:
+                loss = self.loss_fn(masks_pred, true_masks)
+            else:
+                loss = self.loss_fn(masks_pred.squeeze(1), true_masks)
 
             total_loss += loss.item()
 
@@ -69,12 +72,15 @@ class Trainer:
                 for i, vdata in enumerate(self.validation_loader):
                     images, true_masks = vdata
 
-                    images = images.to(device=self.device, dtype=torch.float32, memory_format=torch.channels_last)
-                    true_masks = true_masks.to(device=self.device, dtype=torch.long)
+                    images = images.to(device=self.device, dtype=torch.float, memory_format=torch.channels_last)
+                    true_masks = true_masks.to(device=self.device, dtype=torch.float)
 
                     masks_pred = self.model(images)
 
-                    score = self.validation_fn(true_masks, masks_pred.squeeze(1))
+                    if masks_pred.size()[1] == 3:
+                        score = self.validation_fn(true_masks, masks_pred)
+                    else:
+                        score = self.validation_fn(true_masks, masks_pred.squeeze(1))
 
                     running_metric += score
 
@@ -86,7 +92,7 @@ class Trainer:
             # Track the best performance, and save the model's state
             if avg_metric > best_metric:
                 best_metric = avg_metric
-                model_path = 'models/model_{}_{}'.format(timestamp, epoch_number)
+                model_path = '../models/model_{}_{}'.format(timestamp, epoch_number)
                 torch.save(self.model.state_dict(), model_path)
 
             epoch_number += 1
@@ -126,7 +132,7 @@ class Trainer:
 
         # GPU dependent, necessary to install specific packages
         # print(torch.cuda.power_draw())
-        print("Latency(ms): " + latency_ms)
-        print("Throughput(FPS): " + throughput_s)
-        print("Peak GPU Memory(GB): " + peak_gpu_memory_gb)
-        print("Peak CPU Memory(GB): " + peak_cpu_memory_gb)
+        print(f"Latency(ms): {latency_ms}")
+        print(f"Throughput(FPS): {throughput_s}")
+        print(f"Peak GPU Memory(GB): {peak_gpu_memory_gb}")
+        print(f"Peak CPU Memory(GB): {peak_cpu_memory_gb}")
