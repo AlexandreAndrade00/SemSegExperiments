@@ -68,7 +68,7 @@ class OutputConvolution(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, out_channels, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.input = DoubleConvolution(3, 64, *args, **kwargs)
         self.encode1 = EncoderConvolution(64, 128, *args, **kwargs)
@@ -79,7 +79,7 @@ class UNet(nn.Module):
         self.decode2 = DecoderConvolution(512, 256 // 2, *args, **kwargs)
         self.decode3 = DecoderConvolution(256, 128 // 2, *args, **kwargs)
         self.decode4 = DecoderConvolution(128, 64, *args, **kwargs)
-        self.output = OutputConvolution(64, 1, *args, **kwargs)
+        self.output = OutputConvolution(64, out_channels, *args, **kwargs)
 
     def forward(self, x):
         x1 = self.input(x)

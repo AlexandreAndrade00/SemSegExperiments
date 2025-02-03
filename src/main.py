@@ -6,10 +6,10 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader, Subset
 from sklearn.model_selection import KFold
 
-from KvasirDataset import KvasirDataset
 from UNet import UNet
 from Trainer import Trainer
 from metrics import iou
+from datasets import KvasirDataset
 
 
 def main():
@@ -28,11 +28,15 @@ def main():
         validation_data_loader = DataLoader(valid_set, batch_size=16, shuffle=True, num_workers=os.cpu_count() - 1,
                                             pin_memory=True)
 
-        model = UNet()
+        model = UNet(out_channels=1)
 
         model = model.to(device)
 
         loss_fn = BCEWithLogitsLoss()
+        # loss_fn = CrossEntropyLoss()
+
+        validation_fn = iou
+        # validation_fn = lambda true, pred: mean_iou(true, pred, CityscapesDataset.NUM_CLASSES)
 
         optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
 
@@ -42,7 +46,7 @@ def main():
                           loss_fn=loss_fn,
                           model=model,
                           device=device,
-                          validation_fn=iou)
+                          validation_fn=validation_fn)
 
         metric = trainer.train()
 
