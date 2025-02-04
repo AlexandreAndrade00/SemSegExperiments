@@ -6,16 +6,18 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader, Subset
 from sklearn.model_selection import KFold
 
-from UNet import UNet
+from nets import UNet
 from Trainer import Trainer
-from metrics import iou
+from utils import iou
 from datasets import KvasirDataset
 
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    dataset = KvasirDataset('/home/alexandre/dev/UNetExperiments/datasets/Kvasir-SEG', scale=0.5)
+    dataset = KvasirDataset(
+        "/home/alexandre/dev/UNetExperiments/datasets/Kvasir-SEG", scale=0.5
+    )
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
@@ -23,10 +25,20 @@ def main():
         train_set = Subset(dataset, train_index)
         valid_set = Subset(dataset, valid_index)
 
-        train_data_loader = DataLoader(train_set, batch_size=16, shuffle=True, num_workers=os.cpu_count() - 1,
-                                       pin_memory=True)
-        validation_data_loader = DataLoader(valid_set, batch_size=16, shuffle=True, num_workers=os.cpu_count() - 1,
-                                            pin_memory=True)
+        train_data_loader = DataLoader(
+            train_set,
+            batch_size=16,
+            shuffle=True,
+            num_workers=os.cpu_count() - 1,
+            pin_memory=True,
+        )
+        validation_data_loader = DataLoader(
+            valid_set,
+            batch_size=16,
+            shuffle=True,
+            num_workers=os.cpu_count() - 1,
+            pin_memory=True,
+        )
 
         model = UNet(out_channels=1)
 
@@ -40,18 +52,20 @@ def main():
 
         optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
 
-        trainer = Trainer(training_loader=train_data_loader,
-                          validation_loader=validation_data_loader,
-                          optimizer=optimizer,
-                          loss_fn=loss_fn,
-                          model=model,
-                          device=device,
-                          validation_fn=validation_fn)
+        trainer = Trainer(
+            training_loader=train_data_loader,
+            validation_loader=validation_data_loader,
+            optimizer=optimizer,
+            loss_fn=loss_fn,
+            model=model,
+            device=device,
+            validation_fn=validation_fn,
+        )
 
         metric = trainer.train()
 
         print(f"{i} fold metric: {metric}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

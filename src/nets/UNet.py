@@ -2,15 +2,24 @@ import torch
 from torch import nn
 from torch.nn.functional import pad
 
+from modules import ConvBNRelu
+
 
 class DoubleConvolution(nn.Module):
     def __init__(self, in_channels, out_channels, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        first_conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
-        second_conv = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
+        first_conv = ConvBNRelu(
+            in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True
+        )
 
-        self.net = nn.Sequential(first_conv, nn.BatchNorm2d(out_channels), nn.ReLU(), second_conv,
-                                 nn.BatchNorm2d(out_channels), nn.ReLU())
+        second_conv = ConvBNRelu(
+            out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True
+        )
+
+        self.net = nn.Sequential(
+            first_conv,
+            second_conv,
+        )
 
     def forward(self, x):
         return self.net(x)
@@ -42,8 +51,9 @@ class DecoderConvolution(nn.Module):
         diff_y = x2.size()[2] - x1.size()[2]
         diff_x = x2.size()[3] - x1.size()[3]
 
-        x1 = pad(x1, [diff_x // 2, diff_x - diff_x // 2,
-                      diff_y // 2, diff_y - diff_y // 2])
+        x1 = pad(
+            x1, [diff_x // 2, diff_x - diff_x // 2, diff_y // 2, diff_y - diff_y // 2]
+        )
 
         x = torch.cat((x2, x1), 1)
 
@@ -61,8 +71,10 @@ class OutputConvolution(nn.Module):
         diff_y = x.size()[2] - result.size()[2]
         diff_x = x.size()[3] - result.size()[3]
 
-        result = pad(result, [diff_x // 2, diff_x - diff_x // 2,
-                              diff_y // 2, diff_y - diff_y // 2])
+        result = pad(
+            result,
+            [diff_x // 2, diff_x - diff_x // 2, diff_y // 2, diff_y - diff_y // 2],
+        )
 
         return result
 
