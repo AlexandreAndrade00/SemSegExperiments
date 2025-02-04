@@ -35,9 +35,7 @@ from modules import ConvBNRelu
 
 class STDCNet(nn.Module):
     """
-    Backbone
-
-    STDCNet implementation
+    STDCNet Backbone implementation
 
     Args:
         base(int, optional): base channels. Default: 64.

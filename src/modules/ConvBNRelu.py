@@ -2,6 +2,10 @@ from torch import nn
 
 
 class ConvBNRelu(nn.Module):
+    """
+    Regular Convolution-BatchNormalization-ReLU layer
+    """
+
     def __init__(
         self,
         in_channels,
