@@ -1,9 +1,20 @@
 from datetime import datetime
+
 import torch
 
 
 class Trainer:
-    def __init__(self, training_loader, validation_loader, optimizer, loss_fn, model, device, validation_fn):
+    def __init__(
+        self,
+        training_loader,
+        validation_loader,
+        optimizer,
+        loss_fn,
+        model,
+        device,
+        validation_fn,
+        model_name: str,
+    ):
         self.training_loader = training_loader
         self.validation_loader = validation_loader
         self.optimizer = optimizer
@@ -11,14 +22,17 @@ class Trainer:
         self.model = model
         self.device = device
         self.validation_fn = validation_fn
+        self.model_name = model_name
 
     def train_one_epoch(self):
-        total_loss = 0.
+        total_loss = 0.0
 
         for data in self.training_loader:
             images, true_masks = data
 
-            images = images.to(device=self.device, dtype=torch.float, memory_format=torch.channels_last)
+            images = images.to(
+                device=self.device, dtype=torch.float, memory_format=torch.channels_last
+            )
             true_masks = true_masks.to(device=self.device, dtype=torch.float)
 
             # Zero your gradients for every batch!
@@ -43,16 +57,16 @@ class Trainer:
         return total_loss / self.training_loader.__len__()
 
     def train(self) -> float:
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         epoch_number = 0
 
         EPOCHS = 20
 
-        best_metric = 0.
+        best_metric = 0.0
 
         for epoch in range(EPOCHS):
-            print('EPOCH {}:'.format(epoch_number + 1))
+            print("EPOCH {}:".format(epoch_number + 1))
 
             # Make sure gradient tracking is on, and do a pass over the data
             self.model.train(True)
@@ -64,15 +78,27 @@ class Trainer:
             self.model.eval()
 
             # Disable gradient computation and reduce memory consumption.
-            with torch.no_grad(), torch.profiler.profile(activities=[
-                torch.profiler.ProfilerActivity.CPU,
-                torch.profiler.ProfilerActivity.CUDA,
-            ], profile_memory=True, on_trace_ready=lambda profiler: self._profile_trace_handler(profiler, epoch)) as p:
-
+            with (
+                torch.no_grad(),
+                torch.profiler.profile(
+                    activities=[
+                        torch.profiler.ProfilerActivity.CPU,
+                        torch.profiler.ProfilerActivity.CUDA,
+                    ],
+                    profile_memory=True,
+                    on_trace_ready=lambda profiler: self._profile_trace_handler(
+                        profiler, epoch
+                    ),
+                ) as p,
+            ):
                 for i, vdata in enumerate(self.validation_loader):
                     images, true_masks = vdata
 
-                    images = images.to(device=self.device, dtype=torch.float, memory_format=torch.channels_last)
+                    images = images.to(
+                        device=self.device,
+                        dtype=torch.float,
+                        memory_format=torch.channels_last,
+                    )
                     true_masks = true_masks.to(device=self.device, dtype=torch.float)
 
                     masks_pred = self.model(images)
@@ -87,12 +113,14 @@ class Trainer:
                     p.step()
 
             avg_metric = running_metric / (i + 1)
-            print('LOSS train {} valid {}'.format(avg_loss, avg_metric))
+            print("LOSS train {} valid {}".format(avg_loss, avg_metric))
 
             # Track the best performance, and save the model's state
             if avg_metric > best_metric:
                 best_metric = avg_metric
-                model_path = '../models/model_{}_{}'.format(timestamp, epoch_number)
+                model_path = "../trained_models/{}_{}_{}".format(
+                    self.model_name, timestamp, epoch_number
+                )
                 torch.save(self.model.state_dict(), model_path)
 
             epoch_number += 1
@@ -125,10 +153,10 @@ class Trainer:
 
         latency_ms = (time_total / 1000) / number_samples
 
-        throughput_s = number_samples / (time_total / (1000 ** 2))
+        throughput_s = number_samples / (time_total / (1000**2))
 
-        peak_cpu_memory_gb = peak_cpu_memory / (1000 ** 3)
-        peak_gpu_memory_gb = peak_gpu_memory / (1000 ** 3)
+        peak_cpu_memory_gb = peak_cpu_memory / (1000**3)
+        peak_gpu_memory_gb = peak_gpu_memory / (1000**3)
 
         # GPU dependent, necessary to install specific packages
         # print(torch.cuda.power_draw())

@@ -18,8 +18,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 
 from modules import ConvBNRelu
 
@@ -38,11 +38,16 @@ class SPPM(nn.Module):
     """
 
     def __init__(
-        self, in_channels, inter_channels, out_channels, bin_sizes, align_corners=False
+        self,
+        in_channels,
+        inter_channels,
+        out_channels,
+        bin_sizes=(1, 3),
+        align_corners=False,
     ):
         super().__init__()
 
-        self.stages = nn.LayerList(
+        self.stages = nn.ModuleList(
             [self._make_stage(in_channels, inter_channels, size) for size in bin_sizes]
         )
 

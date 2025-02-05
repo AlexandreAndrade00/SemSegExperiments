@@ -27,6 +27,7 @@ SOFTWARE.
 """
 
 import math
+
 import torch
 from torch import nn
 
@@ -62,7 +63,7 @@ class STDCNet(nn.Module):
 
         self.layers = layers
 
-        self.feat_channels = [base // 2, base, base * 4, base * 8, base * 16]
+        self.feat_channels: list[int] = [base // 2, base, base * 4, base * 8, base * 16]
 
         self.features = self._make_layers(in_channels, base, layers, block_num, block)
 

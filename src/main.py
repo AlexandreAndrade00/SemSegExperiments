@@ -1,15 +1,15 @@
 import os
 
 import torch
+from sklearn.model_selection import KFold
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import SGD
 from torch.utils.data import DataLoader, Subset
-from sklearn.model_selection import KFold
 
+from datasets import KvasirDataset
 from nets import UNet
 from Trainer import Trainer
 from utils import iou
-from datasets import KvasirDataset
 
 
 def main():
@@ -60,6 +60,7 @@ def main():
             model=model,
             device=device,
             validation_fn=validation_fn,
+            model_name="u-net",
         )
 
         metric = trainer.train()
