@@ -2,17 +2,17 @@ import torch
 from torch import nn
 from torch.nn.functional import pad
 
-from modules import ConvBNRelu
+from modules import ConvBNAct
 
 
 class DoubleConvolution(nn.Module):
     def __init__(self, in_channels, out_channels, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        first_conv = ConvBNRelu(
+        first_conv = ConvBNAct(
             in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True
         )
 
-        second_conv = ConvBNRelu(
+        second_conv = ConvBNAct(
             out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True
         )
 
@@ -80,8 +80,13 @@ class OutputConvolution(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, out_channels, *args, **kwargs):
+    name: str = "u-net"
+
+    def __init__(self, num_classes, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.num_classes = num_classes
+
         self.input = DoubleConvolution(3, 64, *args, **kwargs)
         self.encode1 = EncoderConvolution(64, 128, *args, **kwargs)
         self.encode2 = EncoderConvolution(128, 256, *args, **kwargs)
@@ -91,7 +96,7 @@ class UNet(nn.Module):
         self.decode2 = DecoderConvolution(512, 256 // 2, *args, **kwargs)
         self.decode3 = DecoderConvolution(256, 128 // 2, *args, **kwargs)
         self.decode4 = DecoderConvolution(128, 64, *args, **kwargs)
-        self.output = OutputConvolution(64, out_channels, *args, **kwargs)
+        self.output = OutputConvolution(64, self.num_classes, *args, **kwargs)
 
     def forward(self, x):
         x1 = self.input(x)

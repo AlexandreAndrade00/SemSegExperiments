@@ -21,7 +21,7 @@ limitations under the License.
 import torch.nn.functional as F
 from torch import nn
 
-from modules import ConvBNRelu
+from modules import ConvBNAct
 
 
 class SPPM(nn.Module):
@@ -51,7 +51,7 @@ class SPPM(nn.Module):
             [self._make_stage(in_channels, inter_channels, size) for size in bin_sizes]
         )
 
-        self.conv_out = ConvBNRelu(
+        self.conv_out = ConvBNAct(
             in_channels=inter_channels,
             out_channels=out_channels,
             kernel_size=3,
@@ -61,9 +61,9 @@ class SPPM(nn.Module):
         self.align_corners = align_corners
 
     def _make_stage(self, in_channels, out_channels, size):
-        prior = nn.AdaptiveAvgPool2D(output_size=size)
+        prior = nn.AdaptiveAvgPool2d(output_size=size)
 
-        conv = ConvBNRelu(
+        conv = ConvBNAct(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=1,

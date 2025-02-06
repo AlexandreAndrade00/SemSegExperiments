@@ -1,20 +1,30 @@
 from typing import Optional
 
+import torch
 import torch.nn.functional as F
 from torch import nn
 
 from modules import SPPM, ConvBNAct, UAFM_SpAtten
-from nets import STDCNet
+
+from .STDCNet import STDCNet
 
 
 class PPLiteSeg(nn.Module):
+    name: str = "pplite-seg"
+
     def __init__(
         self,
         num_classes: int,
-        backbone: Optional[nn.Module],
-        ppm: Optional[nn.Module],
+        device: torch.device,
+        backbone: Optional[nn.Module] = None,
+        ppm: Optional[nn.Module] = None,
         attention_fusion: str = "spatial",
     ):
+        super().__init__()
+
+        self.num_classes = num_classes
+        self.device = device
+
         self.backbone = backbone if backbone is not None else STDCNet()
         self.attention_fusion = attention_fusion
         self.ppm = (
@@ -33,7 +43,7 @@ class PPLiteSeg(nn.Module):
 
     def forward(self, x):
         # (H, W)
-        image_xy = x.shape[:2]
+        image_xy = x.shape[2:]
 
         # features from encoder's stages, the encoder must output 5 features
         encoder_features = self.backbone(x)
@@ -46,12 +56,16 @@ class PPLiteSeg(nn.Module):
         else:
             raise NotImplementedError()
 
+        decoder_1 = decoder_1.to(device=self.device)
+
         decoder_1_out = decoder_1(encoder_features[3], ppm_out)
 
         if self.attention_fusion == "spatial":
             decoder_2 = UAFM_SpAtten(self.backbone.feat_channels[-3], 96, 64)
         else:
             raise NotImplementedError()
+
+        decoder_2 = decoder_2.to(device=self.device)
 
         decoder_2_out = decoder_2(encoder_features[2], decoder_1_out)
 

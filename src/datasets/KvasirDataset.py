@@ -1,5 +1,5 @@
 from os import listdir
-from os.path import splitext, isfile, join
+from os.path import isfile, join, splitext
 from pathlib import Path
 
 from torch.utils.data import Dataset
@@ -11,6 +11,7 @@ from utils import load_image
 class KvasirDataset(Dataset):
     _IMG_W = 600
     _IMG_H = 500
+    NUM_CLASSES = 1
 
     def __init__(self, dataset_path: str, scale: float = 1):
         self.scale = scale
@@ -33,7 +34,7 @@ class KvasirDataset(Dataset):
                     transforms.InterpolationMode.NEAREST,
                 ),
                 transforms.Lambda(lambda x: x[0, :, :]),
-                transforms.Lambda(lambda x: (x >= 0.5).float()),
+                transforms.Lambda(lambda x: (x >= 0.5).long()),
             ]
         )
 
@@ -58,18 +59,18 @@ class KvasirDataset(Dataset):
         mask_file = list(self.mask_dir.glob(name + ".*"))
         img_file = list(self.images_dir.glob(name + ".*"))
 
-        assert (
-            len(img_file) == 1
-        ), f"Either no image or multiple images found for the ID {name}: {img_file}"
-        assert (
-            len(mask_file) == 1
-        ), f"Either no mask or multiple masks found for the ID {name}: {mask_file}"
+        assert len(img_file) == 1, (
+            f"Either no image or multiple images found for the ID {name}: {img_file}"
+        )
+        assert len(mask_file) == 1, (
+            f"Either no mask or multiple masks found for the ID {name}: {mask_file}"
+        )
         mask = load_image(mask_file[0])
         img = load_image(img_file[0])
 
-        assert (
-            img.size == mask.size
-        ), f"Image and mask {name} should be the same size, but are {img.size} and {mask.size}"
+        assert img.size == mask.size, (
+            f"Image and mask {name} should be the same size, but are {img.size} and {mask.size}"
+        )
 
         img = self.transformer(img)
         mask = self.target_transformer(mask)

@@ -345,7 +345,7 @@ def _avg_max_reduce_hw_helper(x, is_training, use_concat=True):
     if is_training:
         max_pool = F.adaptive_max_pool2d(x, 1)
     else:
-        max_pool = torch.max(x, axis=[2, 3], keepdim=True)
+        max_pool = torch.max(x, axis=[2, 3], keepdim=True).values
 
     if use_concat:
         res = torch.cat([avg_pool, max_pool], axis=1)
@@ -396,14 +396,14 @@ def _max_reduce_channel(x):
     # Reduce channel by max
     # Return cat([max_ch_0, max_ch_1, ...])
     if not isinstance(x, (list, tuple)):
-        return torch.max(x, axis=1, keepdim=True)
+        return torch.max(x, axis=1, keepdim=True).values
     elif len(x) == 1:
-        return torch.max(x[0], axis=1, keepdim=True)
+        return torch.max(x[0], axis=1, keepdim=True).values
     else:
         res = []
 
         for xi in x:
-            res.append(torch.max(xi, axis=1, keepdim=True))
+            res.append(torch.max(xi, axis=1, keepdim=True).values)
 
         return torch.cat(res, axis=1)
 
@@ -413,7 +413,7 @@ def _avg_max_reduce_channel_helper(x, use_concat=True):
     assert not isinstance(x, (list, tuple))
 
     mean_value = torch.mean(x, axis=1, keepdim=True)
-    max_value = torch.max(x, axis=1, keepdim=True)
+    max_value = torch.max(x, axis=1, keepdim=True).values
 
     if use_concat:
         res = torch.concat([mean_value, max_value], axis=1)
@@ -446,7 +446,7 @@ def _cat_avg_max_reduce_channel(x):
     x = torch.cat(x, axis=1)
 
     mean_value = torch.mean(x, axis=1, keepdim=True)
-    max_value = torch.max(x, axis=1, keepdim=True)
+    max_value = torch.max(x, axis=1, keepdim=True).values
 
     res = torch.cat([mean_value, max_value], axis=1)
 

@@ -31,7 +31,7 @@ import math
 import torch
 from torch import nn
 
-from modules import ConvBNRelu
+from modules import ConvBNAct
 
 
 class STDCNet(nn.Module):
@@ -67,8 +67,6 @@ class STDCNet(nn.Module):
 
         self.features = self._make_layers(in_channels, base, layers, block_num, block)
 
-        self.init_weight()
-
     def forward(self, x):
         """
         forward function for feature extract.
@@ -97,8 +95,8 @@ class STDCNet(nn.Module):
 
     def _make_layers(self, in_channels, base, layers, block_num, block):
         features = []
-        features += [ConvBNRelu(in_channels, base // 2, 3, 2)]
-        features += [ConvBNRelu(base // 2, base, 3, 2)]
+        features += [ConvBNAct(in_channels, base // 2, 3, 2, padding="valid")]
+        features += [ConvBNAct(base // 2, base, 3, 2, padding="valid")]
 
         for i, layer in enumerate(layers):
             for j in range(layer):
@@ -173,11 +171,11 @@ class STDCAddBottleneck(nn.Module):
         for idx in range(block_num):
             if idx == 0:
                 self.conv_list.append(
-                    ConvBNRelu(in_channels, out_channels // 2, kernel_size=1)
+                    ConvBNAct(in_channels, out_channels // 2, kernel_size=1)
                 )
             elif idx == 1 and block_num == 2:
                 self.conv_list.append(
-                    ConvBNRelu(
+                    ConvBNAct(
                         out_channels // 2,
                         out_channels // 2,
                         stride=stride,
@@ -185,7 +183,7 @@ class STDCAddBottleneck(nn.Module):
                 )
             elif idx == 1 and block_num > 2:
                 self.conv_list.append(
-                    ConvBNRelu(
+                    ConvBNAct(
                         out_channels // 2,
                         out_channels // 4,
                         stride=stride,
@@ -193,14 +191,14 @@ class STDCAddBottleneck(nn.Module):
                 )
             elif idx < block_num - 1:
                 self.conv_list.append(
-                    ConvBNRelu(
+                    ConvBNAct(
                         out_channels // int(math.pow(2, idx)),
                         out_channels // int(math.pow(2, idx + 1)),
                     )
                 )
             else:
                 self.conv_list.append(
-                    ConvBNRelu(
+                    ConvBNAct(
                         out_channels // int(math.pow(2, idx)),
                         out_channels // int(math.pow(2, idx)),
                     )
@@ -236,16 +234,16 @@ class STDCCatBottleneck(nn.Module):
 
         if stride == 2:
             self.avd_layer = nn.Sequential(
-                nn.Conv2D(
+                nn.Conv2d(
                     out_channels // 2,
                     out_channels // 2,
                     kernel_size=3,
                     stride=2,
                     padding=1,
                     groups=out_channels // 2,
-                    bias_attr=False,
+                    bias=False,
                 ),
-                nn.BatchNorm2D(out_channels // 2),
+                nn.BatchNorm2d(out_channels // 2),
             )
 
             self.skip = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
@@ -255,11 +253,11 @@ class STDCCatBottleneck(nn.Module):
         for idx in range(block_num):
             if idx == 0:
                 self.conv_list.append(
-                    ConvBNRelu(in_channels, out_channels // 2, kernel_size=1)
+                    ConvBNAct(in_channels, out_channels // 2, kernel_size=1)
                 )
             elif idx == 1 and block_num == 2:
                 self.conv_list.append(
-                    ConvBNRelu(
+                    ConvBNAct(
                         out_channels // 2,
                         out_channels // 2,
                         stride=stride,
@@ -267,7 +265,7 @@ class STDCCatBottleneck(nn.Module):
                 )
             elif idx == 1 and block_num > 2:
                 self.conv_list.append(
-                    ConvBNRelu(
+                    ConvBNAct(
                         out_channels // 2,
                         out_channels // 4,
                         stride=stride,
@@ -275,14 +273,14 @@ class STDCCatBottleneck(nn.Module):
                 )
             elif idx < block_num - 1:
                 self.conv_list.append(
-                    ConvBNRelu(
+                    ConvBNAct(
                         out_channels // int(math.pow(2, idx)),
                         out_channels // int(math.pow(2, idx + 1)),
                     )
                 )
             else:
                 self.conv_list.append(
-                    ConvBNRelu(
+                    ConvBNAct(
                         out_channels // int(math.pow(2, idx)),
                         out_channels // int(math.pow(2, idx)),
                     )

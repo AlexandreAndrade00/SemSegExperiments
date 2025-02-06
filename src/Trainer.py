@@ -1,30 +1,78 @@
 from datetime import datetime
+from os.path import join
+from typing import Callable
 
 import torch
+import torch.nn.functional as F
+from torch import nn
+from torch.optim import Optimizer
+from torch.utils.data import DataLoader
+
+from utils import iou, mean_iou
 
 
 class Trainer:
     def __init__(
         self,
-        training_loader,
-        validation_loader,
-        optimizer,
-        loss_fn,
-        model,
-        device,
-        validation_fn,
-        model_name: str,
+        model: nn.Module,
+        training_loader: DataLoader,
+        validation_loader: DataLoader,
+        optimizer: Optimizer,
+        device: torch.device,
+        trained_models_path: str,
+        epochs: int = 20,
+        loss_fn: nn.Module = nn.BCEWithLogitsLoss(),
+        multiclass_loss_fn: nn.Module = nn.CrossEntropyLoss(),
+        validation_fn: Callable[[torch.Tensor, torch.Tensor], float] = iou,
+        multiclass_validation_fn: Callable[
+            [torch.Tensor, torch.Tensor, int], float
+        ] = mean_iou,
     ):
+        self.model = model
         self.training_loader = training_loader
         self.validation_loader = validation_loader
         self.optimizer = optimizer
-        self.loss_fn = loss_fn
-        self.model = model
         self.device = device
+        self.trained_models_path = trained_models_path
+        self.epochs = epochs
+        self.loss_fn = loss_fn
+        self.multiclass_loss_fn = multiclass_loss_fn
         self.validation_fn = validation_fn
-        self.model_name = model_name
+        self.multiclass_validation_fn = multiclass_validation_fn
+        self.epochs = epochs
 
-    def train_one_epoch(self):
+    def train(self) -> float:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        best_metric = 0.0
+
+        for epoch in range(self.epochs):
+            print("EPOCH {}:".format(epoch + 1))
+
+            # train
+            self.model.train(True)
+            avg_loss = self._train_one_epoch()
+
+            # evaluate
+            self.model.eval()
+            avg_metric: float = self._val_one_epoch(epoch)
+
+            print("LOSS train {} valid {}".format(avg_loss, avg_metric))
+
+            # Track the best performance, and save the model's state
+            if avg_metric > best_metric:
+                best_metric = avg_metric
+
+                model_path = join(
+                    self.trained_models_path,
+                    "{}_{}_{}".format(self.model.name, timestamp, epoch),
+                )
+
+                torch.save(self.model.state_dict(), model_path)
+
+        return best_metric
+
+    def _train_one_epoch(self):
         total_loss = 0.0
 
         for data in self.training_loader:
@@ -33,7 +81,7 @@ class Trainer:
             images = images.to(
                 device=self.device, dtype=torch.float, memory_format=torch.channels_last
             )
-            true_masks = true_masks.to(device=self.device, dtype=torch.float)
+            true_masks = true_masks.to(device=self.device, dtype=torch.long)
 
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
@@ -42,10 +90,10 @@ class Trainer:
             masks_pred = self.model(images)
 
             # Compute the loss and its gradients for c
-            if masks_pred.size()[1] == 3:
-                loss = self.loss_fn(masks_pred, true_masks)
+            if self.model.num_classes == 1:
+                loss = self.loss_fn(masks_pred.squeeze(1), true_masks.float())
             else:
-                loss = self.loss_fn(masks_pred.squeeze(1), true_masks)
+                loss = self.multiclass_loss_fn(masks_pred, true_masks)
 
             total_loss += loss.item()
 
@@ -56,76 +104,58 @@ class Trainer:
 
         return total_loss / self.training_loader.__len__()
 
-    def train(self) -> float:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    def _val_one_epoch(self, epoch: int) -> float:
+        running_metric: float = 0.0
 
-        epoch_number = 0
+        with (
+            torch.no_grad(),
+            torch.profiler.profile(
+                activities=[
+                    torch.profiler.ProfilerActivity.CPU,
+                    torch.profiler.ProfilerActivity.CUDA,
+                ],
+                profile_memory=True,
+                on_trace_ready=lambda profiler: self._profile_trace_handler(
+                    profiler, epoch
+                ),
+            ) as p,
+        ):
+            for i, vdata in enumerate(self.validation_loader):
+                images, true_masks = vdata
 
-        EPOCHS = 20
-
-        best_metric = 0.0
-
-        for epoch in range(EPOCHS):
-            print("EPOCH {}:".format(epoch_number + 1))
-
-            # Make sure gradient tracking is on, and do a pass over the data
-            self.model.train(True)
-            avg_loss = self.train_one_epoch()
-
-            running_metric = 0.0
-            # Set the model to evaluation mode, disabling dropout and using population
-            # statistics for batch normalization.
-            self.model.eval()
-
-            # Disable gradient computation and reduce memory consumption.
-            with (
-                torch.no_grad(),
-                torch.profiler.profile(
-                    activities=[
-                        torch.profiler.ProfilerActivity.CPU,
-                        torch.profiler.ProfilerActivity.CUDA,
-                    ],
-                    profile_memory=True,
-                    on_trace_ready=lambda profiler: self._profile_trace_handler(
-                        profiler, epoch
-                    ),
-                ) as p,
-            ):
-                for i, vdata in enumerate(self.validation_loader):
-                    images, true_masks = vdata
-
-                    images = images.to(
-                        device=self.device,
-                        dtype=torch.float,
-                        memory_format=torch.channels_last,
-                    )
-                    true_masks = true_masks.to(device=self.device, dtype=torch.float)
-
-                    masks_pred = self.model(images)
-
-                    if masks_pred.size()[1] == 3:
-                        score = self.validation_fn(true_masks, masks_pred)
-                    else:
-                        score = self.validation_fn(true_masks, masks_pred.squeeze(1))
-
-                    running_metric += score
-
-                    p.step()
-
-            avg_metric = running_metric / (i + 1)
-            print("LOSS train {} valid {}".format(avg_loss, avg_metric))
-
-            # Track the best performance, and save the model's state
-            if avg_metric > best_metric:
-                best_metric = avg_metric
-                model_path = "../trained_models/{}_{}_{}".format(
-                    self.model_name, timestamp, epoch_number
+                images = images.to(
+                    device=self.device,
+                    dtype=torch.float,
+                    memory_format=torch.channels_last,
                 )
-                torch.save(self.model.state_dict(), model_path)
 
-            epoch_number += 1
+                true_masks = true_masks.to(device=self.device, dtype=torch.long)
 
-        return best_metric
+                masks_pred = self.model(images)
+
+                if self.model.num_classes == 1:
+                    assert true_masks.min() >= 0 and true_masks.max() <= 1, (
+                        "True mask indices should be in [0, 1]"
+                    )
+
+                    masks_pred = (F.sigmoid(masks_pred) > 0.5).float()
+
+                    score = self.validation_fn(true_masks, masks_pred)
+                else:
+                    assert (
+                        true_masks.min() >= 0
+                        and true_masks.max() < self.model.num_classes
+                    ), "True mask indices should be in [0, n_classes["
+
+                    score = self.multiclass_validation_fn(
+                        true_masks, masks_pred.argmax(dim=1), self.model.num_classes
+                    )
+
+                running_metric += score
+
+                p.step()
+
+        return running_metric / (i + 1)
 
     def _profile_trace_handler(self, p, epoch):
         number_samples = len(self.validation_loader.dataset)

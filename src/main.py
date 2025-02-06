@@ -2,21 +2,20 @@ import os
 
 import torch
 from sklearn.model_selection import KFold
-from torch.nn import BCEWithLogitsLoss
 from torch.optim import SGD
 from torch.utils.data import DataLoader, Subset
 
-from datasets import KvasirDataset
-from nets import UNet
+from datasets import CityscapesDataset
+from nets import PPLiteSeg
 from Trainer import Trainer
-from utils import iou
 
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    batch_size: int = 8
 
-    dataset = KvasirDataset(
-        "/home/alexandre/dev/UNetExperiments/datasets/Kvasir-SEG", scale=0.5
+    dataset = CityscapesDataset(
+        "/home/alexandre/dev/UNetExperiments/datasets/Cityscapes", scale=0.20
     )
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
@@ -27,40 +26,32 @@ def main():
 
         train_data_loader = DataLoader(
             train_set,
-            batch_size=16,
+            batch_size=batch_size,
             shuffle=True,
             num_workers=os.cpu_count() - 1,
             pin_memory=True,
         )
         validation_data_loader = DataLoader(
             valid_set,
-            batch_size=16,
+            batch_size=batch_size,
             shuffle=True,
             num_workers=os.cpu_count() - 1,
             pin_memory=True,
         )
 
-        model = UNet(out_channels=1)
+        model = PPLiteSeg(num_classes=dataset.NUM_CLASSES, device=device)
 
         model = model.to(device)
-
-        loss_fn = BCEWithLogitsLoss()
-        # loss_fn = CrossEntropyLoss()
-
-        validation_fn = iou
-        # validation_fn = lambda true, pred: mean_iou(true, pred, CityscapesDataset.NUM_CLASSES)
 
         optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
 
         trainer = Trainer(
+            model=model,
             training_loader=train_data_loader,
             validation_loader=validation_data_loader,
             optimizer=optimizer,
-            loss_fn=loss_fn,
-            model=model,
             device=device,
-            validation_fn=validation_fn,
-            model_name="u-net",
+            trained_models_path="/home/alexandre/dev/UNetExperiments/trained_models",
         )
 
         metric = trainer.train()

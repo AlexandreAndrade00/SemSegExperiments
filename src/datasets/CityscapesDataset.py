@@ -1,5 +1,5 @@
-from os.path import join
 from os import scandir
+from os.path import join
 from pathlib import Path
 
 from torch.utils.data import Dataset
@@ -12,7 +12,7 @@ class CityscapesDataset(Dataset):
     _IMG_W = 2048
     _IMG_H = 1024
     _sets = ["train", "val"]
-    NUM_CLASSES = 30
+    NUM_CLASSES = 34
 
     def __init__(self, dataset_path: str, scale: float = 1):
         self.scale = scale
@@ -37,7 +37,7 @@ class CityscapesDataset(Dataset):
                     transforms.PILToTensor(),
                     transforms.Resize(
                         (int(self._IMG_H * scale), int(self._IMG_W * scale)),
-                        transforms.InterpolationMode.NEAREST_EXACT,
+                        transforms.InterpolationMode.NEAREST,
                     ),
                     transforms.Lambda(lambda x: x[0, :, :]),
                 ]
@@ -79,18 +79,18 @@ class CityscapesDataset(Dataset):
         image_file = list(self.images_dir.glob(image_id + "_leftImg8bit.png"))
         mask_file = list(self.mask_dir.glob(image_id + "_gtFine_labelIds.png"))
 
-        assert (
-            len(image_file) == 1
-        ), f"Either no image or multiple images found for the ID {image_id}: {image_file}"
-        assert (
-            len(mask_file) == 1
-        ), f"Either no mask or multiple masks found for the ID {image_id}: {mask_file}"
+        assert len(image_file) == 1, (
+            f"Either no image or multiple images found for the ID {image_id}: {image_file}"
+        )
+        assert len(mask_file) == 1, (
+            f"Either no mask or multiple masks found for the ID {image_id}: {mask_file}"
+        )
         mask = load_image(mask_file[0])
         image = load_image(image_file[0])
 
-        assert (
-            image.size == mask.size
-        ), f"Image and mask {image_id} should be the same size, but are {image.size} and {mask.size}"
+        assert image.size == mask.size, (
+            f"Image and mask {image_id} should be the same size, but are {image.size} and {mask.size}"
+        )
 
         image = self.transformer(image)
         mask = self.target_transformer(mask)

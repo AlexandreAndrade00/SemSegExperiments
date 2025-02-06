@@ -1,5 +1,7 @@
 .idea
 .venv
 __pycache__
-datasets
+datasets/*
 .vscode
+trained_models/*
+!.gitkeep

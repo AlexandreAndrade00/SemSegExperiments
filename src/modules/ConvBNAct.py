@@ -33,7 +33,7 @@ class ConvBNAct(nn.Module):
 
         bn = nn.BatchNorm2d(out_channels)
 
-        if self.activation is None:
+        if activation is None:
             self.net = nn.Sequential(conv, bn)
         else:
             self.net = nn.Sequential(conv, bn, activation)
