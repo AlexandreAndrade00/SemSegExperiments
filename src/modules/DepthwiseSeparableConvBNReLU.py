@@ -4,7 +4,7 @@ Explanation: https://eli.thegreenplace.net/2018/depthwise-separable-convolutions
 
 from torch import nn
 
-from modules import ConvBNAct
+from src.modules import ConvBNAct
 
 
 class DepthwiseSeparableConvBNReLU(nn.Module):

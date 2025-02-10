@@ -21,7 +21,7 @@ limitations under the License.
 import torch.nn.functional as F
 from torch import nn
 
-from modules import ConvBNAct
+from src.modules import ConvBNAct
 
 
 class SPPM(nn.Module):

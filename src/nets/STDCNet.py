@@ -31,7 +31,7 @@ import math
 import torch
 from torch import nn
 
-from modules import ConvBNAct
+from src.modules import ConvBNAct
 
 
 class STDCNet(nn.Module):

@@ -5,9 +5,10 @@ from sklearn.model_selection import KFold
 from torch.optim import SGD
 from torch.utils.data import DataLoader, Subset
 
-from datasets import CityscapesDataset
-from nets import PPLiteSeg
-from Trainer import Trainer
+from src.datasets import CityscapesDataset
+from src.nets import PPLiteSeg
+
+from .Trainer import Trainer
 
 
 def main():

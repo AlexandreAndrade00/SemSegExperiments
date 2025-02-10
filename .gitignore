@@ -5,3 +5,4 @@ datasets/*
 .vscode
 trained_models/*
 !.gitkeep
+.mypy_cache

@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from modules import SPPM, ConvBNAct, UAFM_SpAtten
+from src.modules import SPPM, ConvBNAct, UAFM_SpAtten
 
 from .STDCNet import STDCNet
 

@@ -155,7 +155,7 @@ class Trainer:
 
                 p.step()
 
-        return running_metric / (i + 1)
+        return running_metric / len(self.validation_loader)
 
     def _profile_trace_handler(self, p, epoch):
         number_samples = len(self.validation_loader.dataset)
