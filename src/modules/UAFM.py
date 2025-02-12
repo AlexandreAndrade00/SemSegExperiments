@@ -22,7 +22,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from modules import ConvBNAct, DepthwiseSeparableConvBNReLU
+from src.modules import ConvBNAct, DepthwiseSeparableConvBNReLU
 
 
 class UAFM(nn.Module):

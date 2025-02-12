@@ -5,7 +5,7 @@ from pathlib import Path
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from utils import load_image
+from src.utils import load_image
 
 
 class KvasirDataset(Dataset):

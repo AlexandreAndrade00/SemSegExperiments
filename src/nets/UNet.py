@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.nn.functional import pad
 
-from modules import ConvBNAct
+from src.modules import ConvBNAct
 
 
 class DoubleConvolution(nn.Module):

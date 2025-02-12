@@ -8,7 +8,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from utils import iou, mean_iou
+from src.utils import iou, mean_iou
 
 
 class Trainer:
