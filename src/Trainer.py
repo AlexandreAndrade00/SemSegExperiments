@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
 
 from src.utils import iou, mean_iou
@@ -27,6 +28,7 @@ class Trainer:
         multiclass_validation_fn: Callable[
             [torch.Tensor, torch.Tensor, int], float
         ] = mean_iou,
+        lr_scheduler: LRScheduler | None = None,
     ):
         self.model = model
         self.training_loader = training_loader
@@ -40,6 +42,7 @@ class Trainer:
         self.validation_fn = validation_fn
         self.multiclass_validation_fn = multiclass_validation_fn
         self.epochs = epochs
+        self.lr_scheduler = lr_scheduler
 
     def train(self) -> float:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -101,6 +104,9 @@ class Trainer:
 
             # Adjust learning weights
             self.optimizer.step()
+
+            if self.lr_scheduler is not None:
+                self.lr_scheduler.step()
 
         return total_loss / self.training_loader.__len__()
 
