@@ -1,5 +1,10 @@
+torch
+torchvision
+
+torchmetrics
 pillow
 scikit-learn
 mypy
 ruff
-
+numpy
+onnxscript

@@ -1,0 +1,1 @@
+{"iou": 0.6232436434030533, "dice_coefficient": 0.0, "gpu_peak_memory": 0.087059968, "gpu_allocated_memory": 0.0, "cpu_peak_memory": 0.0, "cpu_allocated_memory": 0.0, "gpu_power_drawn": 164.52783, "throughput": 143.40943697659137, "latency": 0.00697304181009531, "parameters": 6812866}

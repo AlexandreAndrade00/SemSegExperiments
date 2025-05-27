@@ -1,2 +1,0 @@
-pplite-seg_cityscapes_train-old=0.61
-pplite-seg_cityscapes_train-new=0.66

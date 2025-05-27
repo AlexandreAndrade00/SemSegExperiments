@@ -27,6 +27,7 @@ SOFTWARE.
 """
 
 import math
+from typing import List, Callable
 
 import torch
 from torch import nn
@@ -48,13 +49,13 @@ class STDCNet(nn.Module):
 
     def __init__(
         self,
-        base=64,
-        layers=[2, 2, 2],
-        block_num=4,
-        type="cat",
-        in_channels=3,
+        base: int = 64,
+        layers: List[int] = [2, 2, 2],
+        block_num: int = 4,
+        type: str = "cat",
+        in_channels: int = 3,
     ):
-        super(STDCNet, self).__init__()
+        super().__init__()
 
         if type == "cat":
             block = STDCCatBottleneck
@@ -67,7 +68,7 @@ class STDCNet(nn.Module):
 
         self.features = self._make_layers(in_channels, base, layers, block_num, block)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         forward function for feature extract.
         """
@@ -93,7 +94,14 @@ class STDCNet(nn.Module):
 
         return out_feats
 
-    def _make_layers(self, in_channels, base, layers, block_num, block):
+    def _make_layers(
+        self,
+        in_channels: int,
+        base: int,
+        layers: List[int],
+        block_num: int,
+        block: Callable,
+    ) -> torch.nn.Module:
         features = []
         features += [ConvBNAct(in_channels, base // 2, 3, 2, padding="valid")]
         features += [ConvBNAct(base // 2, base, 3, 2, padding="valid")]

@@ -1,12 +1,13 @@
-FROM rocm/pytorch:latest
+FROM nvcr.io/nvidia/pytorch:25.03-py3
 WORKDIR /usr/local/app
 
-COPY ./requirements.txt ./
+COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./src ./src
+COPY src src
+COPY scripts scripts
 
-RUN useradd app
-USER app
+RUN chmod 755 scripts/run.sh
 
-CMD ["python3", "src/main.py"]
+ENTRYPOINT ["./scripts/run.sh"]
